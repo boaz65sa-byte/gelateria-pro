@@ -5,54 +5,54 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ── Warm White / Italian Café palette ──
-        parchment: '#FAF7F2',   // page background
-        linen:     '#F4EFE6',   // card surface
-        canvas:    '#EDE6D9',   // pressed / input bg
-        silk:      '#E2D9C8',   // borders light
-        bisque:    '#CEC0A8',   // borders medium
+        // ── Fragola Italiana — אדום · לבן · בסיל ──
+        parchment: '#FFFAFA',   // page background
+        linen:     '#FFF5F5',   // sidebar + card surface
+        canvas:    '#FFE8EA',   // pressed / input bg
+        silk:      '#FFCCD0',   // borders light
+        bisque:    '#FFB3BA',   // borders medium
 
-        // Terracotta accent (replaces gold)
+        // Fragola accent (replaces terra)
         terra: {
-          50:  '#FDF3EE',
-          100: '#F9DDD0',
-          200: '#F2BAA0',
-          300: '#E8906C',
-          400: '#D96A3E',  // primary CTA
-          500: '#BF5530',
-          600: '#9A4225',
-          700: '#77301A',
-          800: '#541F10',
-          900: '#321007',
+          50:  '#FFF5F5',
+          100: '#FFCCD0',
+          200: '#FF9FAB',
+          300: '#FF7585',
+          400: '#FF5C6B',  // primary CTA
+          500: '#E8485A',
+          600: '#CC2F42',
+          700: '#A31B2D',
+          800: '#6B0010',
+          900: '#3D0008',
         },
-        // Espresso text
+        // Espresso text (unchanged — warm dark)
         espresso: {
-          50:  '#F5F0EB',
-          100: '#E0D5C8',
-          200: '#C2AD97',
-          300: '#A38567',
-          400: '#856040',
-          500: '#5C4028',
-          600: '#412C18',
-          700: '#2B1C0D',
-          800: '#1A1008',
-          900: '#0D0804',
+          50:  '#FFF5F5',
+          100: '#FFD6DA',
+          200: '#C2979A',
+          300: '#9B6870',
+          400: '#7A4450',
+          500: '#5C2D38',
+          600: '#421E28',
+          700: '#2B1018',
+          800: '#1A080F',
+          900: '#0D0407',
         },
-        // Sage green (success, nature)
+        // Sage green (success, nature — unchanged)
         sage: {
-          50:  '#F2F6F0',
-          100: '#D9E8D4',
-          400: '#6A9B60',
-          600: '#426938',
-          800: '#243A1E',
+          50:  '#F0F7F0',
+          100: '#D0E8D0',
+          400: '#4A9B60',
+          600: '#2E6B3E',
+          800: '#1A3D22',
         },
-        // Dusty rose (alerts warm)
+        // Rose alerts (warm — aligned with theme)
         rose: {
-          50:  '#FDF2F2',
-          100: '#F9DADA',
-          400: '#D4756A',
-          600: '#A8433A',
-          800: '#6B2420',
+          50:  '#FFF0F2',
+          100: '#FFD6DA',
+          400: '#FF5C6B',
+          600: '#CC2F42',
+          800: '#6B0010',
         },
       },
       fontFamily: {
@@ -62,9 +62,6 @@ export default {
       },
       fontSize: {
         '2xs': '0.65rem',
-      },
-      backgroundImage: {
-        'grain': "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E\")",
       },
     },
   },

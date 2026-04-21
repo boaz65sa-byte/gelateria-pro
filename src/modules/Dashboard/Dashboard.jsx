@@ -44,7 +44,7 @@ export function Dashboard() {
            style={{boxShadow:'0 2px 8px rgba(90,60,30,0.07),0 8px 32px rgba(90,60,30,0.05)'}}>
         <div className="relative px-7 py-8 md:px-10 md:py-10">
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-            <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-terra-50 dark:bg-terra-900/20 opacity-60"/>
+            <div className="absolute -top-16 -left-16 w-64 h-64 rounded-full bg-terra-100 dark:bg-terra-900/30 opacity-50"/>
             <div className="absolute -bottom-20 -right-10 w-48 h-48 rounded-full bg-linen dark:bg-espresso-600 opacity-40"/>
           </div>
           <div className="relative">
@@ -119,7 +119,7 @@ export function Dashboard() {
 }
 
 const accentMap={
-  terra: {icon:'bg-terra-100 dark:bg-terra-900/30 text-terra-600 dark:text-terra-300',bar:'bg-terra-400'},
+  terra: {icon:'bg-terra-50 dark:bg-terra-900/30 text-terra-600 dark:text-terra-200',bar:'bg-terra-400'},
   sage:  {icon:'bg-sage-50 dark:bg-sage-800/20 text-sage-600 dark:text-sage-400',bar:'bg-sage-400'},
   warm:  {icon:'bg-canvas dark:bg-espresso-600 text-espresso-500 dark:text-espresso-200',bar:'bg-bisque'},
   danger:{icon:'bg-rose-50 dark:bg-rose-900/20 text-rose-500 dark:text-rose-300',bar:'bg-rose-400'},
