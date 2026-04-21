@@ -1,256 +1,170 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useLocalStorage } from '../../hooks/useLocalStorage.js'
+import { inventoryCategories } from '../../data/inventoryData.js'
+import { defaultSuppliers } from '../../data/suppliersData.js'
+import { formatDate } from '../../utils/dateFormat.js'
 import { Icons } from '../../components/ui/Icons.jsx'
 import { Button } from '../../components/ui/Button.jsx'
+import { openWhatsApp, buildSupplierOrderMessage, cleanPhone } from '../../utils/whatsapp.js'
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-const genId = () => `ing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+const WA_ICON = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+)
 
-const UNITS = ['g', 'kg', 'ml', 'l', 'כף', 'כפית', 'יחידות', 'כוס']
-
-function toGrams(amount, unit) {
-  if (unit === 'kg') return amount * 1000
-  if (unit === 'l')  return amount * 1000
-  return amount // g, ml, כף, etc — treat as-is (ratio only)
-}
-
-function fromGrams(grams, unit) {
-  if (unit === 'kg') return +(grams / 1000).toFixed(3)
-  if (unit === 'l')  return +(grams / 1000).toFixed(3)
-  return +grams.toFixed(1)
-}
-
-function scale(amount, unit, factor) {
-  const base = toGrams(amount, unit)
-  return fromGrams(base * factor, unit)
-}
-
-function fmtNum(n) {
-  if (n === 0) return '0'
-  if (n >= 1000) return `${(n / 1000).toFixed(2)} ק"ג`
-  if (Number.isInteger(n)) return String(n)
-  return n.toFixed(1)
-}
-
-const EMPTY_INGREDIENT = () => ({ id: genId(), name: '', amount: '', unit: 'g' })
-
-const defaultRecipe = {
-  name: '',
-  baseAmount: 1,
-  baseUnit: 'kg',
-  ingredients: [EMPTY_INGREDIENT()],
-}
-
-// ── component ────────────────────────────────────────────────────────────────
-export function CustomRecipe() {
-  const [saved, setSaved] = useLocalStorage('gelateria-custom-recipes', [])
-  const [editMode, setEditMode] = useState(false)
-  const [draft, setDraft] = useState(defaultRecipe)
-  const [activeId, setActiveId] = useState(null)
-  const [targetAmount, setTargetAmount] = useState(2)
-  const [copiedMsg, setCopiedMsg] = useState(false)
-
-  const activeRecipe = saved.find(r => r.id === activeId) || saved[0] || null
-
-  // ── draft helpers ──────────────────────────────────────────────────────────
-  const setDraftField = (k, v) => setDraft(d => ({ ...d, [k]: v }))
-
-  const updateIng = (id, k, v) =>
-    setDraft(d => ({ ...d, ingredients: d.ingredients.map(i => i.id === id ? { ...i, [k]: v } : i) }))
-
-  const addIng = () =>
-    setDraft(d => ({ ...d, ingredients: [...d.ingredients, EMPTY_INGREDIENT()] }))
-
-  const removeIng = id =>
-    setDraft(d => ({ ...d, ingredients: d.ingredients.filter(i => i.id !== id) }))
-
-  const openNew = () => {
-    setDraft({ ...defaultRecipe, ingredients: [EMPTY_INGREDIENT()] })
-    setEditMode(true)
-  }
-
-  const openEdit = recipe => {
-    setDraft({ ...recipe })
-    setEditMode(true)
-  }
-
-  const saveRecipe = () => {
-    if (!draft.name.trim()) return
-    const validIngs = draft.ingredients.filter(i => i.name.trim() && i.amount !== '')
-    if (validIngs.length === 0) return
-    const recipe = { ...draft, id: draft.id || genId(), ingredients: validIngs }
-    setSaved(prev => {
-      const exists = prev.find(r => r.id === recipe.id)
-      return exists ? prev.map(r => r.id === recipe.id ? recipe : r) : [...prev, recipe]
+export function OrderForm({ lowStockItems, onClose }) {
+  const [suppliers] = useLocalStorage('gelateria-suppliers', defaultSuppliers)
+  const [orderQuantities, setOrderQuantities] = useState(() => {
+    const init = {}
+    lowStockItems.forEach(item => {
+      init[item.id] = Math.max(item.threshold * 2 - item.quantity, item.threshold)
     })
-    setActiveId(recipe.id)
-    setEditMode(false)
-  }
+    return init
+  })
+  const [notes, setNotes] = useState('')
 
-  const deleteRecipe = id => {
-    if (!window.confirm('למחוק את המתכון?')) return
-    setSaved(prev => prev.filter(r => r.id !== id))
-    if (activeId === id) setActiveId(null)
-  }
+  // Group items by matching supplier (by category)
+  const bySupplier = lowStockItems.reduce((acc, item) => {
+    // Find a supplier that handles this category
+    const matchedSup = suppliers.find(s => s.active && s.categories.includes(item.category))
+    const key = matchedSup ? matchedSup.id : '_no_supplier'
+    const label = matchedSup ? matchedSup.name : (item.supplier || 'ספק לא מוגדר')
+    if (!acc[key]) acc[key] = { label, supplier: matchedSup || null, items: [] }
+    acc[key].items.push(item)
+    return acc
+  }, {})
 
-  // ── scaling calc ───────────────────────────────────────────────────────────
-  const scaledIngredients = useMemo(() => {
-    if (!activeRecipe) return []
-    const baseG = toGrams(activeRecipe.baseAmount, activeRecipe.baseUnit)
-    const targetG = toGrams(targetAmount, activeRecipe.baseUnit)
-    const factor = baseG > 0 ? targetG / baseG : 1
-    return activeRecipe.ingredients.map(ing => ({
-      ...ing,
-      scaled: scale(parseFloat(ing.amount) || 0, ing.unit, factor),
+  const updateQty = (id, val) =>
+    setOrderQuantities(prev => ({ ...prev, [id]: Math.max(0, parseFloat(val) || 0) }))
+
+  const sendToSupplier = (supplierGroup) => {
+    const { supplier, items, label } = supplierGroup
+    if (!supplier || !cleanPhone(supplier.phone)) {
+      alert(`לספק "${label}" אין מספר WhatsApp.\nהגדר מספר בעמוד ההגדרות.`)
+      return
+    }
+    const orderItems = items.map(item => ({
+      name: item.name,
+      quantity: orderQuantities[item.id],
+      unit: item.unit,
     }))
-  }, [activeRecipe, targetAmount])
-
-  const copyToClipboard = () => {
-    const lines = scaledIngredients.map(i => `${i.name}: ${fmtNum(i.scaled)} ${i.unit}`)
-    navigator.clipboard?.writeText(lines.join('\n'))
-    setCopiedMsg(true)
-    setTimeout(() => setCopiedMsg(false), 2000)
+    const msg = buildSupplierOrderMessage({
+      supplier,
+      items: orderItems,
+      date: formatDate(new Date()),
+    })
+    openWhatsApp(supplier.phone, msg)
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  if (editMode) {
-    return <RecipeEditor draft={draft} onField={setDraftField} onUpdateIng={updateIng}
-      onAddIng={addIng} onRemoveIng={removeIng} onSave={saveRecipe}
-      onCancel={() => setEditMode(false)} />
+  const sendAll = () => {
+    const groups = Object.values(bySupplier).filter(g => g.supplier && cleanPhone(g.supplier.phone))
+    if (groups.length === 0) {
+      alert('לא נמצאו ספקים עם מספר WhatsApp. הגדר ספקים בעמוד ההגדרות.')
+      return
+    }
+    groups.forEach((g, i) => {
+      setTimeout(() => sendToSupplier(g), i * 600)
+    })
   }
 
   return (
-    <div className="space-y-6">
-
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="card">
+      <div className="flex items-start justify-between gap-4 mb-6 no-print">
         <div>
-          <p className="font-serif italic text-terra-500 dark:text-terra-300 mb-0.5">Dal sacchetto</p>
-          <h1 className="text-3xl font-serif font-bold mb-1">מתכון מהשקית</h1>
+          <h2 className="text-xl font-serif font-semibold mb-1">טופס הזמנה</h2>
           <p className="text-sm font-sans text-espresso-400 dark:text-espresso-300">
-            הכנס מתכון פעם אחת — שנה כמות בכל שימוש
+            נוצר אוטומטית · {formatDate(new Date())}
           </p>
         </div>
-        <Button variant="primary" onClick={openNew}>
-          <Icons.Plus className="w-4 h-4" /> מתכון חדש
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={sendAll}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-sans font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 transition">
+            <WA_ICON />
+            שלח הכל ל-WhatsApp
+          </button>
+          <Button variant="secondary" onClick={() => window.print()}>
+            <Icons.Print className="w-4 h-4" /> הדפס
+          </Button>
+          <Button variant="ghost" onClick={onClose}><Icons.Close className="w-4 h-4" /></Button>
+        </div>
       </div>
 
-      {saved.length === 0 ? (
-        <EmptyState onNew={openNew} />
+      <div className="print-only mb-6">
+        <h1 className="text-2xl font-bold mb-1">טופס הזמנת סחורה</h1>
+        <p className="text-sm">The Sweet Station · {formatDate(new Date())}</p>
+      </div>
+
+      {Object.keys(bySupplier).length === 0 ? (
+        <div className="text-center py-12 text-espresso-400">
+          <Icons.Check className="w-12 h-12 mx-auto mb-2 text-sage-400" />
+          <p className="font-sans">אין פריטים במלאי נמוך</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Recipe list */}
-          <div className="space-y-2">
-            <p className="section-eyebrow">המתכונים שלי</p>
-            {saved.map(r => (
-              <button key={r.id} onClick={() => { setActiveId(r.id); setTargetAmount(r.baseAmount) }}
-                className={`w-full text-right p-4 rounded-xl border transition-all ${
-                  activeId === r.id || (!activeId && r === saved[0])
-                    ? 'border-terra-300 dark:border-terra-600 bg-terra-50 dark:bg-terra-900/20'
-                    : 'border-silk dark:border-espresso-600 bg-white dark:bg-espresso-700 hover:border-bisque'
-                }`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm font-sans text-espresso-800 dark:text-espresso-50 truncate">{r.name}</p>
-                    <p className="text-xs text-espresso-400 dark:text-espresso-400 font-sans mt-0.5">
-                      בסיס {r.baseAmount} {r.baseUnit} · {r.ingredients.length} מרכיבים
-                    </p>
+        <div className="space-y-6">
+          {Object.entries(bySupplier).map(([key, group]) => {
+            const { supplier, label, items } = group
+            const hasPhone = supplier && cleanPhone(supplier.phone)
+            return (
+              <div key={key} className="avoid-break">
+                {/* Supplier header */}
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-silk dark:border-espresso-700">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif font-semibold text-espresso-800 dark:text-espresso-50">{label}</h3>
+                    {supplier && (
+                      <span className="text-xs font-mono text-espresso-400" dir="ltr">
+                        {cleanPhone(supplier.phone) || 'אין מספר'}
+                      </span>
+                    )}
+                    {supplier?.note && (
+                      <span className="tag text-xs">📝 {supplier.note}</span>
+                    )}
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={e => { e.stopPropagation(); openEdit(r) }}
-                      className="p-1.5 rounded-lg hover:bg-canvas dark:hover:bg-espresso-600 text-espresso-400 transition">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 16 16">
-                        <path d="M11 2l3 3-8 8H3v-3l8-8z" strokeLinejoin="round"/>
-                      </svg>
-                    </button>
-                    <button onClick={e => { e.stopPropagation(); deleteRecipe(r.id) }}
-                      className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-espresso-400 hover:text-rose-600 transition">
-                      <Icons.Trash className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Calculator */}
-          {activeRecipe && (
-            <div className="lg:col-span-2 space-y-4">
-              <div className="card">
-                <div className="flex items-center justify-between gap-4 mb-5">
-                  <div>
-                    <h2 className="text-xl font-serif font-bold">{activeRecipe.name}</h2>
-                    <p className="text-xs text-espresso-400 dark:text-espresso-400 font-sans mt-0.5">
-                      מתכון בסיס: {activeRecipe.baseAmount} {activeRecipe.baseUnit}
-                    </p>
-                  </div>
-                  <span className="tag">{activeRecipe.ingredients.length} מרכיבים</span>
+                  <button
+                    onClick={() => sendToSupplier(group)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-sans font-medium transition border no-print ${
+                      hasPhone
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100'
+                        : 'bg-canvas dark:bg-espresso-700 text-espresso-400 border-silk'
+                    }`}
+                    title={hasPhone ? `שלח הזמנה ל-${label}` : 'הוסף מספר WhatsApp בהגדרות'}>
+                    <WA_ICON />
+                    {hasPhone ? `שלח ל-${label}` : 'אין מספר'}
+                  </button>
                 </div>
 
-                {/* Target amount control */}
-                <div className="bg-linen dark:bg-espresso-800 rounded-2xl p-4 mb-5">
-                  <p className="section-eyebrow mb-3">כמות רצויה</p>
-                  <div className="flex items-center gap-4">
-                    <input type="range"
-                      min="0.5" max={activeRecipe.baseAmount * 20} step="0.5"
-                      value={targetAmount}
-                      onChange={e => setTargetAmount(parseFloat(e.target.value))}
-                      className="flex-1" />
-                    <div className="flex items-baseline gap-2">
-                      <input type="number" min="0.1" step="0.5" value={targetAmount}
-                        onChange={e => setTargetAmount(parseFloat(e.target.value) || 0)}
-                        className="input-field w-24 text-center text-xl font-serif py-2" />
-                      <span className="text-espresso-400 font-sans font-medium text-sm">{activeRecipe.baseUnit}</span>
-                    </div>
-                  </div>
-
-                  {/* Quick presets */}
-                  <div className="flex gap-2 mt-3 flex-wrap">
-                    {[1, 2, 3, 5, 10].map(m => {
-                      const v = +(activeRecipe.baseAmount * m).toFixed(2)
-                      return (
-                        <button key={m} onClick={() => setTargetAmount(v)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-sans font-medium transition ${
-                            targetAmount === v
-                              ? 'bg-terra-400 text-white'
-                              : 'bg-white dark:bg-espresso-700 border border-silk dark:border-espresso-600 text-espresso-500 hover:border-bisque'
-                          }`}>
-                          ×{m}
-                          <span className="text-opacity-70 mr-1">({v} {activeRecipe.baseUnit})</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Scaled table */}
-                <div className="rounded-xl border border-silk dark:border-espresso-600 overflow-hidden mb-4">
+                {/* Items table */}
+                <div className="rounded-xl border border-silk dark:border-espresso-600 overflow-hidden">
                   <table className="w-full text-sm font-sans">
-                    <thead>
-                      <tr className="bg-linen dark:bg-espresso-800">
-                        <th className="text-right px-4 py-2.5 text-xs text-espresso-400 font-medium">מרכיב</th>
-                        <th className="text-center px-3 py-2.5 text-xs text-espresso-400 font-medium">מקור</th>
-                        <th className="text-left px-4 py-2.5 text-xs text-espresso-400 font-medium">מחושב</th>
+                    <thead className="bg-linen dark:bg-espresso-800">
+                      <tr>
+                        <th className="text-right px-4 py-2.5 font-medium text-xs text-espresso-400">פריט</th>
+                        <th className="text-center px-3 py-2.5 font-medium text-xs text-espresso-400">קטגוריה</th>
+                        <th className="text-center px-3 py-2.5 font-medium text-xs text-espresso-400">במלאי</th>
+                        <th className="text-left px-4 py-2.5 font-medium text-xs text-espresso-400">כמות להזמנה</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {scaledIngredients.map((ing, idx) => {
-                        const factor = (toGrams(targetAmount, activeRecipe.baseUnit) /
-                                        toGrams(activeRecipe.baseAmount, activeRecipe.baseUnit))
-                        const unchanged = Math.abs(factor - 1) < 0.001
+                      {items.map(item => {
+                        const cat = inventoryCategories[item.category]
                         return (
-                          <tr key={ing.id}
-                              className={`border-t border-silk dark:border-espresso-700 ${idx % 2 === 0 ? '' : 'bg-linen/30 dark:bg-espresso-800/30'}`}>
-                            <td className="px-4 py-3 text-espresso-700 dark:text-espresso-100 font-medium">{ing.name}</td>
-                            <td className="px-3 py-3 text-center text-espresso-400 dark:text-espresso-400 text-xs font-mono">
-                              {ing.amount} {ing.unit}
+                          <tr key={item.id} className="border-t border-silk dark:border-espresso-700">
+                            <td className="px-4 py-2.5 font-medium">{item.name}</td>
+                            <td className="px-3 py-2.5 text-center text-xs text-espresso-400">{cat?.label}</td>
+                            <td className="px-3 py-2.5 text-center text-xs text-espresso-400">
+                              {item.quantity} {item.unit}
                             </td>
-                            <td className={`px-4 py-3 font-mono font-semibold text-left ${
-                              unchanged ? 'text-espresso-500 dark:text-espresso-300' : 'text-terra-600 dark:text-terra-300'
-                            }`}>
-                              {fmtNum(ing.scaled)} {ing.unit}
+                            <td className="px-4 py-2.5 text-left">
+                              <div className="flex items-center gap-1 justify-end">
+                                <input
+                                  type="number" min="0" step="0.1"
+                                  value={orderQuantities[item.id]}
+                                  onChange={e => updateQty(item.id, e.target.value)}
+                                  className="input-field w-20 text-center py-1.5 text-sm no-print"
+                                />
+                                <span className="print-only font-semibold">{orderQuantities[item.id]}</span>
+                                <span className="text-xs text-espresso-400">{item.unit}</span>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -258,147 +172,21 @@ export function CustomRecipe() {
                     </tbody>
                   </table>
                 </div>
-
-                <div className="flex gap-2 justify-end">
-                  <Button variant="secondary" onClick={copyToClipboard}>
-                    {copiedMsg ? <><Icons.Check className="w-4 h-4" /> הועתק!</> : 'העתק רשימה'}
-                  </Button>
-                  <Button variant="secondary" onClick={() => window.print()} className="no-print">
-                    <Icons.Print className="w-4 h-4" /> הדפס
-                  </Button>
-                </div>
               </div>
-            </div>
-          )}
+            )
+          })}
+
+          <div>
+            <label className="block text-sm font-sans font-medium mb-2">הערות כלליות:</label>
+            <textarea rows="2" value={notes} onChange={e => setNotes(e.target.value)}
+              className="input-field resize-none" placeholder="הערות נוספות לטופס..." />
+          </div>
+
+          <div className="print-only mt-8 pt-4 border-t border-silk text-xs text-center">
+            bs-simple.com · בועז סעדה — פתרונות יצירתיים
+          </div>
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Recipe editor ─────────────────────────────────────────────────────────────
-function RecipeEditor({ draft, onField, onUpdateIng, onAddIng, onRemoveIng, onSave, onCancel }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <button onClick={onCancel}
-          className="p-2 rounded-xl hover:bg-linen dark:hover:bg-espresso-700 transition text-espresso-400">
-          <Icons.ChevronLeft className="w-5 h-5 rotate-180" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-serif font-bold">{draft.id ? 'עריכת מתכון' : 'מתכון חדש'}</h1>
-          <p className="text-sm text-espresso-400 font-sans">הכנס את הנתונים מהשקית</p>
-        </div>
-      </div>
-
-      <div className="card space-y-5">
-        {/* Name + base */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-xs text-espresso-400 font-sans mb-1.5">שם המתכון / שם המוצר על השקית</label>
-            <input
-              value={draft.name}
-              onChange={e => onField('name', e.target.value)}
-              className="input-field text-lg font-serif"
-              placeholder="לדוגמה: Choco Dream Mix, בצק וופל פרמיום..."
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-espresso-400 font-sans mb-1.5">כמות בסיס על השקית</label>
-            <div className="flex gap-2">
-              <input
-                type="number" min="0.1" step="0.1"
-                value={draft.baseAmount}
-                onChange={e => onField('baseAmount', parseFloat(e.target.value) || 1)}
-                className="input-field w-24 text-center font-serif text-lg"
-              />
-              <select value={draft.baseUnit} onChange={e => onField('baseUnit', e.target.value)}
-                className="input-field flex-1">
-                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Ingredients */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-xs text-espresso-400 font-sans uppercase tracking-widest font-semibold" style={{fontSize:'0.65rem'}}>
-              מרכיבים לפי המתכון על השקית
-            </label>
-            <span className="tag">{draft.ingredients.length} מרכיבים</span>
-          </div>
-
-          <div className="space-y-2">
-            {draft.ingredients.map((ing, idx) => (
-              <div key={ing.id} className="flex items-center gap-2">
-                <span className="w-6 text-center text-xs text-espresso-400 font-mono flex-shrink-0">{idx + 1}</span>
-                <input
-                  value={ing.name}
-                  onChange={e => onUpdateIng(ing.id, 'name', e.target.value)}
-                  className="input-field flex-1"
-                  placeholder="שם המרכיב (קמח, ביצים, חלב...)"
-                />
-                <input
-                  type="number" min="0" step="any"
-                  value={ing.amount}
-                  onChange={e => onUpdateIng(ing.id, 'amount', e.target.value)}
-                  className="input-field w-24 text-center font-mono"
-                  placeholder="כמות"
-                />
-                <select value={ing.unit} onChange={e => onUpdateIng(ing.id, 'unit', e.target.value)}
-                  className="input-field w-20 text-sm">
-                  {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                </select>
-                {draft.ingredients.length > 1 && (
-                  <button onClick={() => onRemoveIng(ing.id)}
-                    className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-espresso-300 hover:text-rose-500 transition flex-shrink-0">
-                    <Icons.Minus className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <button onClick={onAddIng}
-            className="mt-3 flex items-center gap-2 text-sm text-terra-600 dark:text-terra-300 hover:text-terra-700 font-sans font-medium transition">
-            <Icons.Plus className="w-4 h-4" />
-            הוסף מרכיב
-          </button>
-        </div>
-
-        {/* Tip box */}
-        <div className="bg-terra-50 dark:bg-terra-900/20 rounded-xl p-4 border border-terra-100 dark:border-terra-800/30">
-          <p className="text-xs font-sans text-terra-700 dark:text-terra-300 leading-relaxed">
-            💡 <strong>טיפ:</strong> הכנס את הכמויות בדיוק כפי שכתוב על השקית.
-            המערכת תחשב אוטומטית לכל כמות שתרצה — ×2, ×5, ×10, וכו׳.
-            אפשר לעבוד בכל יחידות (גרם, ק"ג, כפות...).
-          </p>
-        </div>
-
-        <div className="flex gap-3 justify-end pt-2 border-t border-silk dark:border-espresso-600">
-          <Button variant="ghost" onClick={onCancel}>ביטול</Button>
-          <Button variant="primary" onClick={onSave}>
-            <Icons.Check className="w-4 h-4" />
-            {draft.id ? 'שמור שינויים' : 'שמור מתכון'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function EmptyState({ onNew }) {
-  return (
-    <div className="card text-center py-16">
-      <div className="text-5xl mb-4">📋</div>
-      <h2 className="font-serif font-bold text-xl mb-2">אין עדיין מתכונים</h2>
-      <p className="text-sm text-espresso-400 dark:text-espresso-300 font-sans mb-6 max-w-sm mx-auto">
-        הוסף מתכון מהשקית פעם אחת — ואז תוכל לחשב כמויות בלחיצה
-      </p>
-      <Button variant="primary" onClick={onNew}>
-        <Icons.Plus className="w-4 h-4" /> הוסף מתכון ראשון
-      </Button>
     </div>
   )
 }
