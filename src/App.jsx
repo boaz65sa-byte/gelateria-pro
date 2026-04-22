@@ -4,6 +4,7 @@ import { Dashboard } from './modules/Dashboard/Dashboard.jsx'
 import { RecipeCalculator } from './modules/RecipeCalculator/RecipeCalculator.jsx'
 import { CustomRecipe } from './modules/CustomRecipe/CustomRecipe.jsx'
 import { Inventory } from './modules/Inventory/Inventory.jsx'
+import { Equipment } from './modules/Equipment/Equipment.jsx'
 import { PlatingGuide } from './modules/PlatingGuide/PlatingGuide.jsx'
 import { Shifts } from './modules/Shifts/Shifts.jsx'
 import { SweetMenu } from './modules/SweetMenu/SweetMenu.jsx'
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="recipes"   element={<RecipeCalculator />} />
         <Route path="custom"    element={<CustomRecipe />} />
         <Route path="inventory" element={<Inventory />} />
+        <Route path="equipment" element={<Equipment />} />
         <Route path="settings"  element={<Settings />} />
         <Route path="print"     element={<PrintableManual />} />
       </Route>

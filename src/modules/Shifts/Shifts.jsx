@@ -86,8 +86,9 @@ export function Shifts() {
   const openEditWorker = w  => { setWorkerDraft({...w});            workerModal.open() }
   const saveWorker = () => {
     const name=workerDraft.name.trim(); if(!name) return
-    if(workerDraft.id) setWorkers(prev=>prev.map(w=>w.id===workerDraft.id?{...w,name}:w))
-    else setWorkers(prev=>[...prev,{id:genId(),name}])
+    const phone=(workerDraft.phone||'').trim()
+    if(workerDraft.id) setWorkers(prev=>prev.map(w=>w.id===workerDraft.id?{...w,name,phone}:w))
+    else setWorkers(prev=>[...prev,{id:genId(),name,phone}])
     workerModal.close()
   }
   const deleteWorker = id => { if(window.confirm('למחוק עובד?')){setWorkers(prev=>prev.filter(w=>w.id!==id));if(activeWorker===id)setActiveWorker(null)} }
