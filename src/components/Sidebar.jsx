@@ -30,7 +30,7 @@ const navGroups = [
   {
     label: 'תפריט',
     items: [
-      { path:'/menu',    label:'Sweet Station', sub:'תפריט דו-לשוני',    Icon: () => <Icons.IceCream className="w-4 h-4"/> },
+      { path:'/menu',    label:'Sweet Station', sub:'תפריט + תמחור',    Icon: () => <Icons.IceCream className="w-4 h-4"/> },
       { path:'/plating', label:'Impiattare',    sub:'מדריך הגשה',        Icon: () => <Icons.Plating className="w-4 h-4"/> },
     ]
   },

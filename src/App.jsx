@@ -7,7 +7,7 @@ import { Inventory } from './modules/Inventory/Inventory.jsx'
 import { Equipment } from './modules/Equipment/Equipment.jsx'
 import { PlatingGuide } from './modules/PlatingGuide/PlatingGuide.jsx'
 import { Shifts } from './modules/Shifts/Shifts.jsx'
-import { SweetMenu } from './modules/SweetMenu/SweetMenu.jsx'
+import { Menu } from './modules/Menu/Menu.jsx'
 import { Settings } from './modules/Settings/Settings.jsx'
 import { PrintableManual } from './pages/PrintableManual.jsx'
 
@@ -17,7 +17,7 @@ export default function App() {
       <Route path="/" element={<Layout />}>
         <Route index            element={<Dashboard />} />
         <Route path="shifts"    element={<Shifts />} />
-        <Route path="menu"      element={<SweetMenu />} />
+        <Route path="menu"      element={<Menu />} />
         <Route path="plating"   element={<PlatingGuide />} />
         <Route path="recipes"   element={<RecipeCalculator />} />
         <Route path="custom"    element={<CustomRecipe />} />
