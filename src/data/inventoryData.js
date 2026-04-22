@@ -1,57 +1,55 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- *  ניהול מלאי — Default Inventory
+ *  ניהול מלאי חכם — Sweet Station
  * ═══════════════════════════════════════════════════════════════
  *
- * פריטי ברירת מחדל במערכת. הלקוח יוכל להוסיף/לערוך/למחוק בזמן אמת
- * מתוך הממשק, אך אלו הפריטים שיופיעו בהרצה הראשונה.
- *
- * שדות:
- *  - id: מזהה ייחודי
- *  - name: שם הפריט
- *  - category: chocolate | dairy | packaging | dry | fruits
- *  - quantity: מלאי נוכחי
- *  - threshold: הסף שמתחתיו המערכת תציג התראת "מלאי נמוך"
- *  - unit: יחידת מידה (ק"ג, ליטר, יחידות וכו')
- *  - supplier: שם הספק
+ * כל פריט מכיל:
+ *  current   — מלאי נוכחי בפועל
+ *  opening   — מלאי פתיחה (הסף שמתחתיו מתריעים)
+ *  orderQty  — כמות להזמנה (מוגדרת ידנית לכל מוצר)
+ *  supplierId — מזהה ספק מ-suppliersData.js
  */
 
 export const inventoryCategories = {
-  chocolate: { label: 'שוקולד וקצפות', color: 'amber' },
-  dairy: { label: 'מוצרי חלב', color: 'blue' },
-  packaging: { label: 'אריזות וכלים', color: 'gold' },
-  dry: { label: 'יבשים ומרכיבים', color: 'gray' },
-  fruits: { label: 'פירות ותוספות', color: 'emerald' },
+  chocolate: { label: 'שוקולד וקצפות', emoji: '🍫' },
+  dairy:     { label: 'מוצרי חלב',     emoji: '🥛' },
+  packaging: { label: 'אריזות וכלים',  emoji: '📦' },
+  dry:       { label: 'יבשים ומרכיבים',emoji: '🌾' },
+  fruits:    { label: 'פירות ותוספות', emoji: '🍓' },
 }
 
 export const defaultInventory = [
-  // Chocolate
-  { id: 'inv-1', name: 'נוטלה', category: 'chocolate', quantity: 5, threshold: 3, unit: 'קילו', supplier: 'פררו רושה' },
-  { id: 'inv-2', name: 'קינדר שוקולד', category: 'chocolate', quantity: 8, threshold: 4, unit: 'יחידות', supplier: 'סופר פארם' },
-  { id: 'inv-3', name: 'סירופ שוקולד', category: 'chocolate', quantity: 2, threshold: 2, unit: 'ליטר', supplier: 'הרשי ישראל' },
-  { id: 'inv-4', name: 'קצפת מתוקה', category: 'chocolate', quantity: 3, threshold: 4, unit: 'ליטר', supplier: 'תנובה' },
+  // ── שוקולד ──
+  { id:'inv-1',  name:'נוטלה',              category:'chocolate', unit:'ק"ג',    current:5,  opening:4,  orderQty:6,  supplierId:'sup-4', notes:'' },
+  { id:'inv-2',  name:'סירופ שוקולד',       category:'chocolate', unit:'ליטר',   current:3,  opening:3,  orderQty:4,  supplierId:'sup-4', notes:'הרשי' },
+  { id:'inv-3',  name:'קצפת מתוקה',         category:'chocolate', unit:'ליטר',   current:2,  opening:4,  orderQty:6,  supplierId:'sup-1', notes:'' },
+  { id:'inv-4',  name:'שוקולד כהה 70%',     category:'chocolate', unit:'ק"ג',    current:3,  opening:3,  orderQty:5,  supplierId:'sup-4', notes:'ולרונה' },
+  { id:'inv-5',  name:'שוקולד לבן',         category:'chocolate', unit:'ק"ג',    current:2,  opening:2,  orderQty:3,  supplierId:'sup-4', notes:'' },
 
-  // Dairy
-  { id: 'inv-5', name: 'חלב 3%', category: 'dairy', quantity: 12, threshold: 8, unit: 'ליטר', supplier: 'תנובה' },
-  { id: 'inv-6', name: 'שמנת מתוקה 38%', category: 'dairy', quantity: 6, threshold: 4, unit: 'ליטר', supplier: 'תנובה' },
-  { id: 'inv-7', name: 'חמאה', category: 'dairy', quantity: 4, threshold: 3, unit: 'קילו', supplier: 'תנובה' },
-  { id: 'inv-8', name: 'ביצים L', category: 'dairy', quantity: 60, threshold: 30, unit: 'יחידות', supplier: 'מחסן הביצים' },
+  // ── מחלבה ──
+  { id:'inv-6',  name:'חלב 3%',             category:'dairy',     unit:'ליטר',   current:12, opening:8,  orderQty:12, supplierId:'sup-1', notes:'' },
+  { id:'inv-7',  name:'שמנת מתוקה 38%',     category:'dairy',     unit:'ליטר',   current:6,  opening:5,  orderQty:8,  supplierId:'sup-1', notes:'' },
+  { id:'inv-8',  name:'חמאה',               category:'dairy',     unit:'ק"ג',    current:4,  opening:3,  orderQty:5,  supplierId:'sup-1', notes:'' },
+  { id:'inv-9',  name:'ביצים L',            category:'dairy',     unit:'יחידות', current:60, opening:36, orderQty:60, supplierId:'sup-1', notes:'כשר' },
+  { id:'inv-10', name:'גבינת שמנת',         category:'dairy',     unit:'ק"ג',    current:3,  opening:3,  orderQty:4,  supplierId:'sup-1', notes:'' },
 
-  // Packaging
-  { id: 'inv-9', name: 'כוסות גלידה 200ml', category: 'packaging', quantity: 200, threshold: 100, unit: 'יחידות', supplier: 'פאקו' },
-  { id: 'inv-10', name: 'כפיות חד פעמיות', category: 'packaging', quantity: 300, threshold: 150, unit: 'יחידות', supplier: 'פאקו' },
-  { id: 'inv-11', name: 'מגשי הגשה קרפ', category: 'packaging', quantity: 80, threshold: 50, unit: 'יחידות', supplier: 'פאקו' },
-  { id: 'inv-12', name: 'מפיות נייר', category: 'packaging', quantity: 5, threshold: 10, unit: 'חבילות', supplier: 'פאקו' },
-  { id: 'inv-13', name: 'מקלות עץ לוופל', category: 'packaging', quantity: 150, threshold: 100, unit: 'יחידות', supplier: 'פאקו' },
+  // ── אריזות ──
+  { id:'inv-11', name:'כוסות חד פעמי 240מל',category:'packaging', unit:'יחידות', current:200,opening:150,orderQty:500,supplierId:'sup-3', notes:'' },
+  { id:'inv-12', name:'קעריות חד פעמיות',  category:'packaging', unit:'יחידות', current:150,opening:150,orderQty:500,supplierId:'sup-3', notes:'' },
+  { id:'inv-13', name:'כפיות גלידה',        category:'packaging', unit:'יחידות', current:300,opening:200,orderQty:500,supplierId:'sup-3', notes:'' },
+  { id:'inv-14', name:'מפיות נייר',         category:'packaging', unit:'חבילות', current:8,  opening:10, orderQty:20, supplierId:'sup-3', notes:'' },
+  { id:'inv-15', name:'מקלות וופל',         category:'packaging', unit:'יחידות', current:120,opening:100,orderQty:300,supplierId:'sup-3', notes:'' },
 
-  // Dry
-  { id: 'inv-14', name: 'קמח לבן', category: 'dry', quantity: 15, threshold: 10, unit: 'קילו', supplier: 'שטיבל' },
-  { id: 'inv-15', name: 'סוכר לבן', category: 'dry', quantity: 8, threshold: 5, unit: 'קילו', supplier: 'שטיבל' },
-  { id: 'inv-16', name: 'אבקת אפייה', category: 'dry', quantity: 1, threshold: 1, unit: 'קילו', supplier: 'שטיבל' },
-  { id: 'inv-17', name: 'תמצית וניל', category: 'dry', quantity: 2, threshold: 1, unit: 'ליטר', supplier: 'שטיבל' },
+  // ── יבשים ──
+  { id:'inv-16', name:'קמח לבן',            category:'dry',       unit:'ק"ג',    current:15, opening:10, orderQty:20, supplierId:'sup-2', notes:'' },
+  { id:'inv-17', name:'סוכר לבן',           category:'dry',       unit:'ק"ג',    current:8,  opening:6,  orderQty:10, supplierId:'sup-2', notes:'' },
+  { id:'inv-18', name:'אבקת אפייה',         category:'dry',       unit:'ק"ג',    current:1,  opening:1,  orderQty:3,  supplierId:'sup-2', notes:'' },
+  { id:'inv-19', name:'תמצית וניל',         category:'dry',       unit:'ליטר',   current:2,  opening:1,  orderQty:3,  supplierId:'sup-2', notes:'' },
+  { id:'inv-20', name:'פיסטוק טחון',        category:'dry',       unit:'ק"ג',    current:2,  opening:2,  orderQty:4,  supplierId:'sup-2', notes:'איראני' },
 
-  // Fruits
-  { id: 'inv-18', name: 'בננות', category: 'fruits', quantity: 4, threshold: 3, unit: 'קילו', supplier: 'שוק המחנה יהודה' },
-  { id: 'inv-19', name: 'תותים', category: 'fruits', quantity: 2, threshold: 2, unit: 'קילו', supplier: 'שוק המחנה יהודה' },
-  { id: 'inv-20', name: 'פצפוצי שוקולד', category: 'fruits', quantity: 3, threshold: 2, unit: 'קילו', supplier: 'הרשי ישראל' },
+  // ── פירות ──
+  { id:'inv-21', name:'בננות',              category:'fruits',    unit:'ק"ג',    current:4,  opening:3,  orderQty:6,  supplierId:'sup-5', notes:'' },
+  { id:'inv-22', name:'תותים',              category:'fruits',    unit:'ק"ג',    current:2,  opening:2,  orderQty:4,  supplierId:'sup-5', notes:'טרי' },
+  { id:'inv-23', name:'פצפוצי שוקולד',      category:'fruits',    unit:'ק"ג',    current:3,  opening:3,  orderQty:5,  supplierId:'sup-4', notes:'' },
+  { id:'inv-24', name:'קדאיף',              category:'dry',       unit:'ק"ג',    current:2,  opening:2,  orderQty:4,  supplierId:'sup-2', notes:'קפוא' },
 ]

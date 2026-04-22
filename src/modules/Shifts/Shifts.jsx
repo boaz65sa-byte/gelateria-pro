@@ -6,6 +6,7 @@ import { formatTime, todayKey, formatDate } from '../../utils/dateFormat.js'
 import { Icons } from '../../components/ui/Icons.jsx'
 import { Button } from '../../components/ui/Button.jsx'
 import { openWhatsApp, buildShiftMessage, cleanPhone } from '../../utils/whatsapp.js'
+import { WeeklySchedule } from './WeeklySchedule.jsx'
 
 const WA_ICON = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -129,11 +130,19 @@ export function Shifts() {
             <Button variant={view==='worker'?'primary':'secondary'} onClick={()=>setView('worker')}>
               <Icons.Check className="w-4 h-4"/> עובד
             </Button>
+            <Button variant={view==='weekly'?'primary':'secondary'} onClick={()=>setView('weekly')}>
+              <Icons.Clock className="w-4 h-4"/> סידור שבועי
+            </Button>
             <Button variant={view==='manage'?'primary':'secondary'} onClick={()=>setView('manage')}>
               <Icons.Dashboard className="w-4 h-4"/> ניהול
             </Button>
           </div>
         </div>
+
+        {/* ── WEEKLY VIEW ── */}
+        {view==='weekly' && (
+          <WeeklySchedule workers={workers} tasks={tasks} />
+        )}
 
         {/* ── WORKER VIEW ── */}
         {view==='worker' && (
