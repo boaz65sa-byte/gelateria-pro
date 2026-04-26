@@ -52,4 +52,12 @@ export const defaultInventory = [
   { id:'inv-22', name:'תותים',              category:'fruits',    unit:'ק"ג',    current:2,  opening:2,  orderQty:4,  supplierId:'sup-5', notes:'טרי' },
   { id:'inv-23', name:'פצפוצי שוקולד',      category:'fruits',    unit:'ק"ג',    current:3,  opening:3,  orderQty:5,  supplierId:'sup-4', notes:'' },
   { id:'inv-24', name:'קדאיף',              category:'dry',       unit:'ק"ג',    current:2,  opening:2,  orderQty:4,  supplierId:'sup-2', notes:'קפוא' },
+
+  // ── מרכיבים חדשים — סופט-סרב ומתכוני ייצור ──────────────────
+  { id:'inv-25', name:'דקסטרוז',             category:'dry',       unit:'ק"ג',    current:1,  opening:1,  orderQty:2,  supplierId:'sup-2', notes:'למתכון סופט-סרב' },
+  { id:'inv-26', name:'מייצב גלידה',          category:'dry',       unit:'ק"ג',    current:0.5,opening:0.3,orderQty:1,  supplierId:'sup-2', notes:'ICE מייצב מקצועי' },
+  { id:'inv-27', name:'סירופ גלוקוז',         category:'dry',       unit:'ק"ג',    current:2,  opening:1,  orderQty:3,  supplierId:'sup-2', notes:'פרמיום — מונע קריסטלים' },
+  { id:'inv-28', name:'פירה פיסטוק 100%',    category:'chocolate', unit:'ק"ג',    current:1,  opening:0.5,orderQty:2,  supplierId:'sup-4', notes:'ללא תוספת סוכר — לדובאי' },
+  { id:'inv-29', name:'שמנת חלבית/צמחית',    category:'dairy',     unit:'ליטר',   current:3,  opening:2,  orderQty:5,  supplierId:'sup-1', notes:'לסופט-סרב אבקה' },
+  { id:'inv-30', name:'אבקת חלב',             category:'dairy',     unit:'ק"ג',    current:3,  opening:2,  orderQty:5,  supplierId:'sup-1', notes:'לסופט-סרב' },
 ]
