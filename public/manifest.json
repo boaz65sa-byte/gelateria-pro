@@ -1,0 +1,16 @@
+{
+  "name": "Sweet Station Pro",
+  "short_name": "Sweet Station",
+  "description": "ניהול תפעול גלידריה — Sweet Station Pro",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#FFFAFA",
+  "theme_color": "#FF5C6B",
+  "orientation": "portrait-primary",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    { "src": "./favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["food", "business", "productivity"]
+}

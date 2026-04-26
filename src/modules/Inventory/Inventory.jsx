@@ -229,7 +229,8 @@ export function Inventory() {
   },[visible])
 
   // mutations
-  const updateItem   = (id,changes) => setInventory(prev=>prev.map(i=>i.id===id?{...i,...changes}:i))
+  const toggleOrdered = (id) =>
+    setInventory(prev => prev.map(i => i.id === id ? {...i, ordered: !i.ordered} : i))
   const deleteItem   = id => { if(window.confirm('למחוק פריט?')) setInventory(prev=>prev.filter(i=>i.id!==id)) }
   const adjustQty    = (id, delta) => {
     setInventory(prev=>prev.map(i=>{
@@ -478,6 +479,18 @@ export function Inventory() {
                               <button onClick={()=>sendOrder([item],supplier)}
                                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-sans font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-100 transition mr-1">
                                 <WaIcon/> הזמן
+                              </button>
+                            )}
+
+                            {/* Mark as ordered */}
+                            {gap>0 && (
+                              <button onClick={()=>toggleOrdered(item.id)}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-sans font-medium transition border mr-1 ${
+                                  item.ordered
+                                    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700 hover:bg-amber-100'
+                                    : 'bg-canvas dark:bg-espresso-700 text-espresso-400 border-silk hover:border-bisque'
+                                }`}>
+                                {item.ordered ? '📦 בהזמנה' : 'סמן כהוזמן'}
                               </button>
                             )}
 

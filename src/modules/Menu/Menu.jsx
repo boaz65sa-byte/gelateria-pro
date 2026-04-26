@@ -50,12 +50,16 @@ function IngRow({ ing, onChange, onDelete }) {
 
 // ── Cost panel (inside edit modal) ────────────────────────────────────────────
 function CostPanel({ draft }) {
+  const [dailyServings, setDailyServings] = useState(20)
   const ingCost  = calcIngredientsCost(draft)
   const totalCost = calcTotalCost(draft)
   const margin   = calcMargin(draft)
   const rec60    = calcRecommendedPrice(draft, 60)
   const rec65    = calcRecommendedPrice(draft, 65)
   const grade    = MARGIN_GRADE(margin)
+  const monthlyRevenue = Math.round(dailyServings * draft.price * 30)
+  const monthlyCost    = Math.round(dailyServings * totalCost * 30)
+  const monthlyProfit  = monthlyRevenue - monthlyCost
 
   return (
     <div className={`rounded-xl p-4 ${grade.bg} space-y-2`}>
@@ -83,6 +87,27 @@ function CostPanel({ draft }) {
           <button onClick={()=>{}} className="text-xs px-3 py-1.5 rounded-lg bg-white/60 dark:bg-espresso-700/60 font-mono hover:bg-white transition">
             65% מרווח → ₪{Math.ceil(rec65)}
           </button>
+        </div>
+      </div>
+      <div className="border-t border-white/40 pt-3 mt-2">
+        <p className="text-xs text-espresso-400 font-sans mb-2">מחשבון Break-Even — כמה מנות ביום?</p>
+        <div className="flex items-center gap-3 mb-2">
+          <input type="range" min="1" max="100" step="1" value={dailyServings}
+            onChange={e=>setDailyServings(parseInt(e.target.value))}
+            className="flex-1"/>
+          <span className="text-sm font-mono font-medium w-16 text-right">{dailyServings} מנות</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {[
+            {l:'הכנסה/חודש', v:`₪${monthlyRevenue.toLocaleString('he-IL')}`, c:''},
+            {l:'עלות/חודש',  v:`₪${monthlyCost.toLocaleString('he-IL')}`,    c:'text-rose-600'},
+            {l:'רווח/חודש',  v:`₪${monthlyProfit.toLocaleString('he-IL')}`,  c:monthlyProfit>0?'text-sage-600':'text-rose-600'},
+          ].map((s,i)=>(
+            <div key={i} className="bg-white/50 dark:bg-espresso-700/50 rounded-lg p-2">
+              <p className="text-xs text-espresso-400 mb-0.5">{s.l}</p>
+              <p className={`text-sm font-mono font-bold ${s.c}`}>{s.v}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -399,6 +424,11 @@ export function Menu() {
                   <span>{cat?.emoji}</span>
                   <span className="font-serif font-semibold text-sm">{catName}</span>
                   <span className="text-xs text-espresso-400 font-sans">({catItems.length})</span>
+                  {(() => {
+                    const avg = Math.round(catItems.reduce((s,i) => s + calcMargin(i), 0) / catItems.length)
+                    const color = avg >= 55 ? 'text-sage-600 dark:text-sage-400' : avg >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-500'
+                    return <span className={`mr-auto text-xs font-mono font-medium ${color}`}>מרווח ממוצע {avg}%</span>
+                  })()}
                 </div>
                 <div className="divide-y divide-silk/40 dark:divide-espresso-700/40">
                   {catItems.map(item=>{

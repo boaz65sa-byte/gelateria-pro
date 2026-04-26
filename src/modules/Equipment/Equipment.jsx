@@ -259,7 +259,25 @@ export function Equipment() {
           ))}
         </div>
 
-        {/* Owner summary */}
+        {/* Overall progress */}
+        <div className="card py-4">
+          <div className="flex items-center justify-between text-sm font-sans mb-2">
+            <span className="font-medium">
+              {stats.purchased === stats.total && stats.total > 0
+                ? '✓ כל הציוד נרכש!'
+                : `${stats.purchased} מתוך ${stats.total} פריטים נרכשו`}
+            </span>
+            <span className="font-mono text-espresso-400">
+              {stats.total > 0 ? Math.round((stats.purchased/stats.total)*100) : 0}%
+            </span>
+          </div>
+          <div className="h-3 rounded-full bg-canvas dark:bg-espresso-700 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${stats.purchased === stats.total && stats.total > 0 ? 'bg-sage-400' : 'bg-terra-400'}`}
+              style={{width:`${stats.total>0?Math.round((stats.purchased/stats.total)*100):0}%`}}
+            />
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="card flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-300 flex items-center justify-center text-lg font-serif font-bold">א</div>
