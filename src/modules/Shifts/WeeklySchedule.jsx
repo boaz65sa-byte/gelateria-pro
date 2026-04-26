@@ -135,6 +135,30 @@ export function WeeklySchedule({ workers, tasks }) {
     setSchedules(prev => ({ ...prev, [weekKey]: emptySchedule() }))
   }
 
+  const exportCSV = () => {
+    const rows = [['יום', 'תאריך', 'בוקר 07-15', 'צהריים 12-20', 'ערב 16-00']]
+    DAYS.forEach((day, di) => {
+      const daySchedule = schedule[day.id] || {}
+      const cols = SHIFT_SLOTS.filter(s => s.id !== 'closed').map(slot => {
+        const assigned = (daySchedule[slot.id] || [])
+          .map(id => workers.find(w => w.id === id)?.name)
+          .filter(Boolean)
+          .join(' + ')
+        return assigned || '—'
+      })
+      rows.push([day.label, formatShortDate(weekDates[di]), ...cols])
+    })
+    const csv = rows.map(r => r.map(cell => `"${cell}"`).join(',')).join('\n')
+    const bom  = '\uFEFF' // UTF-8 BOM for Excel Hebrew support
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `סידור-${weekKey}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const saveNotes = () => {
     setSchedules(prev => ({ ...prev, [weekKey + '_notes']: notesDraft }))
   }
@@ -310,6 +334,7 @@ export function WeeklySchedule({ workers, tasks }) {
             <WA_ICON /> שלח הכל
           </button>
           <Button variant="secondary" onClick={copyToNext} className="text-xs">העתק לשבוע הבא</Button>
+          <Button variant="secondary" onClick={exportCSV} className="text-xs">📊 CSV</Button>
           <Button variant="secondary" onClick={() => setPrintMode(true)} className="text-xs">
             <Icons.Print className="w-3.5 h-3.5" /> הדפס
           </Button>

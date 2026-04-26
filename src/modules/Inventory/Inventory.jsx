@@ -187,12 +187,15 @@ export function Inventory() {
   const [inventory, setInventory]   = useLocalStorage('gelateria-inventory', defaultInventory)
   const [suppliers]                 = useLocalStorage('gelateria-suppliers', defaultSuppliers)
   const [dismissed, setDismissed]   = useLocalStorage('gelateria-alert-dismissed', '')
+  const [history, setHistory]       = useLocalStorage('gelateria-inventory-history', [])
   const [filter, setFilter]         = useState('all')
   const [printMode, setPrintMode]   = useState(false)
   const [search, setSearch]         = useState('')
 
-  const editModal  = useModal()
-  const addModal   = useModal()
+  const editModal    = useModal()
+  const addModal     = useModal()
+  const historyModal = useModal()
+  const [historyItem, setHistoryItem] = useState(null)
   const [draft, setDraft] = useState(null)
 
   // alerts: items below opening level
@@ -228,11 +231,38 @@ export function Inventory() {
     return g
   },[visible])
 
+  // ── history logging ─────────────────────────────────────────────────────────
+  const logHistory = (item, type, delta, note='') => {
+    const entry = {
+      id:      genId(),
+      itemId:  item.id,
+      itemName:item.name,
+      unit:    item.unit,
+      type,          // 'adjust' | 'edit' | 'order' | 'add' | 'delete'
+      delta,         // number change (+ or -)
+      valueBefore: item.current,
+      valueAfter:  Math.max(0, +(item.current + delta).toFixed(2)),
+      note,
+      ts: new Date().toISOString(),
+    }
+    setHistory(prev => [entry, ...prev].slice(0, 200)) // keep last 200 entries
+  }
+
   // mutations
   const toggleOrdered = (id) =>
     setInventory(prev => prev.map(i => i.id === id ? {...i, ordered: !i.ordered} : i))
-  const deleteItem   = id => { if(window.confirm('למחוק פריט?')) setInventory(prev=>prev.filter(i=>i.id!==id)) }
-  const adjustQty    = (id, delta) => {
+
+  const deleteItem = id => {
+    if(window.confirm('למחוק פריט?')) {
+      const item = inventory.find(i=>i.id===id)
+      if (item) logHistory(item, 'delete', 0, 'פריט נמחק')
+      setInventory(prev=>prev.filter(i=>i.id!==id))
+    }
+  }
+
+  const adjustQty = (id, delta) => {
+    const item = inventory.find(i=>i.id===id)
+    if (item) logHistory(item, 'adjust', delta)
     setInventory(prev=>prev.map(i=>{
       if(i.id!==id) return i
       return {...i, current:Math.max(0,+(i.current+delta).toFixed(2))}
@@ -241,6 +271,10 @@ export function Inventory() {
 
   const openEdit = item => { setDraft({...item}); editModal.open() }
   const saveEdit = () => {
+    const orig = inventory.find(i=>i.id===draft.id)
+    if (orig && orig.current !== draft.current) {
+      logHistory(orig, 'edit', draft.current - orig.current, 'עריכה ידנית')
+    }
     setInventory(prev=>prev.map(i=>i.id===draft.id?{...draft}:i))
     editModal.close()
   }
@@ -342,6 +376,11 @@ export function Inventory() {
           <div className="flex flex-wrap gap-2">
             <Button variant="primary" onClick={openAdd}><Icons.Plus className="w-4 h-4"/> מוצר חדש</Button>
             <Button variant="secondary" onClick={()=>setPrintMode(true)}><Icons.Print className="w-4 h-4"/> דוח מלאי</Button>
+            {history.length > 0 && (
+              <Button variant="secondary" onClick={historyModal.open} className="text-xs">
+                📋 היסטוריה ({history.length})
+              </Button>
+            )}
             <Button variant="ghost" onClick={reset}><Icons.Reset className="w-4 h-4"/></Button>
           </div>
         </div>
@@ -533,6 +572,71 @@ export function Inventory() {
       <Modal isOpen={addModal.isOpen} onClose={addModal.close} title="מוצר חדש" size="md"
         footer={<><Button variant="ghost" onClick={addModal.close}>ביטול</Button><Button variant="primary" onClick={saveAdd}>הוסף</Button></>}>
         {draft && <ItemForm draft={draft} onChange={setDraft} suppliers={suppliers}/>}
+      </Modal>
+
+      {/* History modal */}
+      <Modal isOpen={historyModal.isOpen} onClose={historyModal.close}
+        title={`📋 היסטוריית שינויים (${history.length})`} size="lg"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button onClick={()=>{ if(window.confirm('למחוק את כל ההיסטוריה?')) setHistory([]) }}
+              className="text-xs text-espresso-400 hover:text-rose-500 transition font-sans">
+              נקה הכל
+            </button>
+            <Button variant="ghost" onClick={historyModal.close}>סגור</Button>
+          </div>
+        }>
+        <div className="space-y-1">
+          {history.length === 0 ? (
+            <p className="text-center py-8 text-espresso-400 font-sans text-sm">אין היסטוריה עדיין</p>
+          ) : history.map(entry => {
+            const isPlus  = entry.delta > 0
+            const isMinus = entry.delta < 0
+            const ts = new Date(entry.ts)
+            return (
+              <div key={entry.id}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-linen dark:hover:bg-espresso-700/50 transition">
+                {/* Icon */}
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-sm ${
+                  entry.type==='delete' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500' :
+                  isPlus               ? 'bg-sage-50 dark:bg-sage-900/20 text-sage-600' :
+                  isMinus              ? 'bg-terra-50 dark:bg-terra-900/20 text-terra-500' :
+                                         'bg-canvas dark:bg-espresso-700 text-espresso-400'
+                }`}>
+                  {entry.type==='delete' ? '🗑' : isPlus ? '+' : isMinus ? '−' : '✎'}
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-sans font-medium text-sm">{entry.itemName}</span>
+                    {entry.note && <span className="text-xs text-espresso-400 font-sans">{entry.note}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 text-xs font-mono text-espresso-400">
+                    <span>{entry.valueBefore} {entry.unit}</span>
+                    <span>→</span>
+                    <span className={isPlus?'text-sage-600 dark:text-sage-400':isMinus?'text-terra-500':''}>
+                      {entry.valueAfter} {entry.unit}
+                    </span>
+                    {entry.delta !== 0 && (
+                      <span className={`font-semibold ${isPlus?'text-sage-600 dark:text-sage-400':'text-terra-500'}`}>
+                        ({isPlus?'+':''}{entry.delta > 0 ? entry.delta : entry.delta.toFixed ? entry.delta.toFixed(1) : entry.delta})
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Time */}
+                <div className="text-right flex-shrink-0">
+                  <p className="text-xs font-mono text-espresso-400">
+                    {ts.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}
+                  </p>
+                  <p className="text-xs font-mono text-espresso-300">
+                    {ts.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}
+                  </p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </Modal>
     </>
   )

@@ -47,6 +47,7 @@ const navGroups = [
     items: [
       { path:'/inventory', label:'Magazzino',    sub:'מלאי שוטף + WA',   Icon: WaIcon },
       { path:'/equipment', label:'Attrezzatura', sub:'ציוד לפתיחה',       Icon: BoxIcon },
+      { path:'/reports',   label:'Rapporto',     sub:'דוחות כלכליים',     Icon: () => <Icons.Dashboard className="w-4 h-4"/> },
       { path:'/print',     label:'Manuale',      sub:'ספר מודפס / PDF',   Icon: () => <Icons.Print className="w-4 h-4"/> },
     ]
   },

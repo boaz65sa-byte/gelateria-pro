@@ -88,8 +88,9 @@ export function Shifts() {
   const saveWorker = () => {
     const name=workerDraft.name.trim(); if(!name) return
     const phone=(workerDraft.phone||'').trim()
-    if(workerDraft.id) setWorkers(prev=>prev.map(w=>w.id===workerDraft.id?{...w,name,phone}:w))
-    else setWorkers(prev=>[...prev,{id:genId(),name,phone}])
+    const hourlyRate=parseFloat(workerDraft.hourlyRate)||35
+    if(workerDraft.id) setWorkers(prev=>prev.map(w=>w.id===workerDraft.id?{...w,name,phone,hourlyRate}:w))
+    else setWorkers(prev=>[...prev,{id:genId(),name,phone,hourlyRate}])
     workerModal.close()
   }
   const deleteWorker = id => { if(window.confirm('למחוק עובד?')){setWorkers(prev=>prev.filter(w=>w.id!==id));if(activeWorker===id)setActiveWorker(null)} }
@@ -359,6 +360,81 @@ export function Shifts() {
                 ))}
               </ul>
             </div>
+
+            {/* Salary calculator */}
+            {workers.length > 0 && (
+              <div className="card">
+                <h2 className="font-serif font-semibold text-lg mb-4">מחשבון שכר עובדים</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm font-sans">
+                    <thead>
+                      <tr className="border-b border-silk dark:border-espresso-600">
+                        <th className="text-right py-2 font-medium text-espresso-400 text-xs">עובד</th>
+                        <th className="text-center py-2 font-medium text-espresso-400 text-xs">₪/שעה</th>
+                        <th className="text-center py-2 font-medium text-espresso-400 text-xs">שעות/משמרת</th>
+                        <th className="text-center py-2 font-medium text-espresso-400 text-xs">משמרות/שבוע</th>
+                        <th className="text-center py-2 font-medium text-espresso-400 text-xs">עלות שבועית</th>
+                        <th className="text-center py-2 font-medium text-espresso-400 text-xs">עלות חודשית</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workers.map(w => {
+                        const hourlyRate   = parseFloat(w.hourlyRate) || 35
+                        const hoursPerShift = 8
+                        // Count shifts this week from weekly schedule
+                        const weekKey2 = (() => {
+                          const d=new Date(); const jan1=new Date(d.getFullYear(),0,1)
+                          const wk=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7)
+                          return `${d.getFullYear()}-W${String(wk).padStart(2,'0')}`
+                        })()
+                        const weekSchedule = (schedules||{})[weekKey2] || {}
+                        const shiftsThisWeek = Object.values(weekSchedule).reduce((cnt, daySchedule) => {
+                          return cnt + Object.values(daySchedule).filter(arr => arr.includes(w.id)).length
+                        }, 0)
+                        const weeklyCost  = shiftsThisWeek * hoursPerShift * hourlyRate
+                        const monthlyCost = Math.round(weeklyCost * 4.33)
+                        return (
+                          <tr key={w.id} className="border-b border-silk/50 dark:border-espresso-700 last:border-0">
+                            <td className="py-3 font-medium">{w.name}</td>
+                            <td className="py-3 text-center">
+                              <span className="font-mono text-sm">₪{hourlyRate}</span>
+                            </td>
+                            <td className="py-3 text-center font-mono text-espresso-400">{hoursPerShift}</td>
+                            <td className="py-3 text-center">
+                              <span className="font-mono font-semibold">{shiftsThisWeek}</span>
+                            </td>
+                            <td className="py-3 text-center font-mono font-semibold text-terra-600 dark:text-terra-300">
+                              ₪{Math.round(weeklyCost).toLocaleString('he-IL')}
+                            </td>
+                            <td className="py-3 text-center font-mono font-bold">
+                              ₪{monthlyCost.toLocaleString('he-IL')}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                      <tr className="bg-linen/50 dark:bg-espresso-800/50 font-bold">
+                        <td colSpan={4} className="py-2.5 px-2 text-xs text-espresso-400 font-sans">סה"כ חודשי משוער</td>
+                        <td/>
+                        <td className="py-2.5 text-center font-mono text-lg text-terra-500 dark:text-terra-300">
+                          ₪{workers.reduce((sum, w) => {
+                            const rate = parseFloat(w.hourlyRate) || 35
+                            const weekKey3 = (() => {
+                              const d=new Date(); const jan1=new Date(d.getFullYear(),0,1)
+                              const wk=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7)
+                              return `${d.getFullYear()}-W${String(wk).padStart(2,'0')}`
+                            })()
+                            const ws = (schedules||{})[weekKey3] || {}
+                            const shifts = Object.values(ws).reduce((c,d2)=>c+Object.values(d2).filter(a=>a.includes(w.id)).length,0)
+                            return sum + Math.round(shifts * 8 * rate * 4.33)
+                          }, 0).toLocaleString('he-IL')}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-espresso-400 font-sans mt-3">* מחושב לפי {new Date().toLocaleDateString('he-IL',{month:'long',year:'numeric'})} · ערוך שכר שעתי בפרטי עובד</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -377,14 +453,23 @@ export function Shifts() {
             <label className="block text-xs text-espresso-400 font-sans mb-1">
               מספר WhatsApp
               <span className="text-espresso-300 mr-1 font-normal">(לשליחת סידור עבודה)</span>
-            </label>
-            <input value={workerDraft?.phone||''} onChange={e=>setWorkerDraft(d=>({...d,phone:e.target.value}))}
+            </label>            <input value={workerDraft?.phone||''} onChange={e=>setWorkerDraft(d=>({...d,phone:e.target.value}))}
               className="input-field font-mono" placeholder="0501234567" dir="ltr"/>
             {workerDraft?.phone && (
               <p className="text-xs mt-1 text-espresso-400">
                 פורמט: {cleanPhone(workerDraft.phone) || 'לא תקין'}
               </p>
             )}
+          </div>
+          <div>
+            <label className="block text-xs text-espresso-400 font-sans mb-1">
+              שכר שעתי (₪)
+              <span className="text-espresso-300 mr-1 font-normal">(לחישוב עלות עובדים)</span>
+            </label>
+            <input type="number" min="0" step="0.5"
+              value={workerDraft?.hourlyRate||35}
+              onChange={e=>setWorkerDraft(d=>({...d,hourlyRate:e.target.value}))}
+              className="input-field text-center font-mono" placeholder="35"/>
           </div>
         </div>
       </Modal>

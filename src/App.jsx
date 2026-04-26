@@ -9,6 +9,7 @@ import { PlatingGuide } from './modules/PlatingGuide/PlatingGuide.jsx'
 import { Shifts } from './modules/Shifts/Shifts.jsx'
 import { Menu } from './modules/Menu/Menu.jsx'
 import { FrozenStation } from './modules/FrozenStation/FrozenStation.jsx'
+import { Reports } from './modules/Reports/Reports.jsx'
 import { Settings } from './modules/Settings/Settings.jsx'
 import { PrintableManual } from './pages/PrintableManual.jsx'
 
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="custom"    element={<CustomRecipe />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="equipment" element={<Equipment />} />
+        <Route path="reports"   element={<Reports />} />
         <Route path="settings"  element={<Settings />} />
         <Route path="print"     element={<PrintableManual />} />
       </Route>

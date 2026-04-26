@@ -144,6 +144,18 @@ function ItemForm({ draft, onChange }) {
           <input type="number" min="0" value={draft.price} onChange={e=>set('price',parseFloat(e.target.value)||0)} className="input-field font-mono text-lg text-center"/>
         </div>
         <div className="md:col-span-2">
+          <label className="block text-xs text-espresso-400 font-sans mb-1">תמונה (URL אופציונלי)</label>
+          <div className="flex gap-2">
+            <input value={draft.imageUrl||''} onChange={e=>set('imageUrl',e.target.value)}
+              className="input-field flex-1 text-sm" placeholder="https://... או השאר ריק"
+              dir="ltr"/>
+            {draft.imageUrl && (
+              <img src={draft.imageUrl} alt="" className="w-12 h-12 object-cover rounded-xl border border-silk flex-shrink-0"
+                onError={e=>{e.target.style.display='none'}}/>
+            )}
+          </div>
+        </div>
+        <div className="md:col-span-2">
           <label className="block text-xs text-espresso-400 font-sans mb-1">תיאור</label>
           <textarea rows={2} value={draft.description} onChange={e=>set('description',e.target.value)} className="input-field resize-none text-sm"/>
         </div>
@@ -321,7 +333,7 @@ export function Menu() {
   const openEdit = item => { setDraft(JSON.parse(JSON.stringify(item))); editModal.open() }
   const saveEdit = () => { setItems(prev=>prev.map(i=>i.id===draft.id?draft:i)); editModal.close() }
   const openAdd  = () => {
-    setDraft({id:null,name:'',nameEn:'',category:'waffle',price:0,overheadPct:35,description:'',ingredients:[],tags:[],active:true})
+    setDraft({id:null,name:'',nameEn:'',category:'waffle',price:0,overheadPct:35,description:'',ingredients:[],tags:[],active:true,imageUrl:''})
     addModal.open()
   }
   const saveAdd  = () => {
@@ -440,11 +452,18 @@ export function Menu() {
                       <div key={item.id}
                         className={`flex items-start gap-3 px-4 py-3 group transition ${isOff?'opacity-40':''} hover:bg-linen/30 dark:hover:bg-espresso-800/30`}>
 
-                        {/* Active toggle */}
-                        <button onClick={()=>toggleActive(item.id)}
-                          className={`mt-1 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${isOff?'border-silk dark:border-espresso-500':'border-terra-400 bg-terra-400'}`}>
-                          {!isOff&&<Icons.Check className="w-2.5 h-2.5 text-white"/>}
-                        </button>
+                        {/* Image thumbnail + active toggle */}
+                        <div className="flex flex-col items-center gap-1 flex-shrink-0 mt-0.5">
+                          {item.imageUrl ? (
+                            <img src={item.imageUrl} alt={item.name}
+                              className="w-10 h-10 object-cover rounded-lg border border-silk"
+                              onError={e=>{e.target.style.display='none'}}/>
+                          ) : null}
+                          <button onClick={()=>toggleActive(item.id)}
+                            className={`w-4 h-4 rounded border-2 flex items-center justify-center transition ${isOff?'border-silk dark:border-espresso-500':'border-terra-400 bg-terra-400'}`}>
+                            {!isOff&&<Icons.Check className="w-2.5 h-2.5 text-white"/>}
+                          </button>
+                        </div>
 
                         {/* Name + desc */}
                         <div className="flex-1 min-w-0">
