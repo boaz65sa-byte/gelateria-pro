@@ -58,6 +58,7 @@ export function Shifts() {
   const [workers,setWorkers]       = useLocalStorage('gelateria-workers', [])
   const [tasks,setTasks]           = useLocalStorage('gelateria-shift-tasks', DEFAULT_TASKS)
   const [checks,setChecks]         = useLocalStorage(`gelateria-shift-checks-${todayKey()}`, {})
+  const [schedules]                = useLocalStorage('gelateria-weekly-schedules', {})
   const [activeShift,setActiveShift]   = useState('morning')
   const [activeWorker,setActiveWorker] = useState(null)
   const [view,setView]                 = useState('worker')
